@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="fill_parent"
+    android:layout_height="match_parent">
+
+    <com.rengwuxian.materialedittext.MaterialEditText
+        android:id="@+id/login_username"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:hint="Username"
+        app:met_floatingLabel="highlight"
+        android:background="#c0392b"
+        android:textColor="@android:color/white"
+        app:met_baseColor="@android:color/white"
+        app:met_primaryColor="@android:color/white"
+        android:layout_margin="8dp"/>
+
+    <com.rengwuxian.materialedittext.MaterialEditText
+        android:id="@+id/login_password"
+        android:layout_below="@+id/login_username"
+        android:layout_margin="8dp"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:hint="Password"
+        android:textColor="@android:color/white"
+        android:inputType="textPassword"
+        app:met_baseColor="@android:color/white"
+        app:met_primaryColor="@android:color/white"
+        app:met_floatingLabel="highlight"/>
+
+
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Login"
+        android:id="@+id/btn_login"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_below="@+id/login_remember_me"
+        android:layout_alignParentEnd="true" />
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/login_password"
+        android:layout_alignEnd="@+id/login_password"
+        android:hint="Remember Me"
+        android:textColorHint="@android:color/white"
+        android:id="@+id/login_remember_me" />
+
+</RelativeLayout>

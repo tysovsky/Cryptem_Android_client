@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.rengwuxian.materialedittext.MaterialEditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:met_primaryColor="#ff266dff"
+        android:hint="Recipent:"
+        android:id="@+id/new_conversation_recipient"
+        app:met_floatingLabel="highlight"/>
+    <com.rengwuxian.materialedittext.MaterialEditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:met_primaryColor="#ff266dff"
+        android:hint="Password:"
+        android:id="@+id/new_conversation_password"
+        app:met_floatingLabel="highlight"
+        android:inputType="textPassword" />
+    <com.rengwuxian.materialedittext.MaterialEditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:met_primaryColor="#ff266dff"
+        android:hint="Message:"
+        android:id="@+id/new_conversation_message"
+        app:met_floatingLabel="highlight"/>
+</LinearLayout>
