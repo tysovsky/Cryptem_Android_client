@@ -5,9 +5,17 @@ import android.util.Log;
 
 import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Random;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.Signature;
+import java.security.SignatureException;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -52,6 +60,10 @@ public class Crypto {
         return secretKeySpec;
     }
 
+    /**
+     * Generate random Initialization Vector of size 16 bytes
+     * @return A byte array of random bytes
+     */
     public static byte[] GenerateRandomIV()
     {
         byte[] IV = new byte[16];
@@ -62,46 +74,65 @@ public class Crypto {
             }
             return IV;
         }
-        new Random().nextBytes(IV);
+        SecureRandom random = new SecureRandom();
+        random.nextBytes(IV);
+        return IV;
+    }
+
+    /**
+     * Generate random Initialization Vector
+     * @param size the size of IV, in bytes
+     * @returnA byte array of random bytes
+     */
+    public static byte[] GenerateRandomIV(int size){
+        byte[] IV = new byte[size];
+
+        SecureRandom random = new SecureRandom();
+        random.nextBytes(IV);
         return IV;
     }
 
 
+    //region Advanced Encryption Standard
+
     /**
      * Encrypt and encode message using 256-bit AES with key generated from password.
-     *
-     *
      * @param password used to generated key
      * @param message the thing you want to encrypt assumed String UTF-8
      * @return Base64 encoded CipherText
      * @throws GeneralSecurityException if problems occur during encryption
      */
-    public static String encrypt(final String password, String message)
+    public static String AESencrypt(final String password, String message)
             throws GeneralSecurityException {
 
         try {
             final SecretKeySpec key = generateKey(password);
 
-            log("message", message);
 
-            byte[] cipherText = encrypt(key, ivBytes, message.getBytes(CHARSET));
+            byte[] cipherText = AESencrypt(key, ivBytes, message.getBytes(CHARSET));
 
             //NO_WRAP is important as was getting \n at the end
             String encoded = Base64.encodeToString(cipherText, Base64.NO_WRAP);
-            log("Base64.NO_WRAP", encoded);
             return encoded;
         } catch (UnsupportedEncodingException e) {
-            if (DEBUG_LOG_ENABLED)
+            if (Utils.DEBUG)
                 Log.e(TAG, "UnsupportedEncodingException ", e);
             throw new GeneralSecurityException(e);
         }
     }
 
-    public static String encrypt(final String password, String plainText, byte[] iv){
+    /**
+     * Encrypt and encode message using 256-bit AES with a key generated from password and a custom IV
+     * @param password string used to generate key
+     * @param plainText plaintext to encrypt
+     * @param iv 16-byte Initialization Vector
+     * @return Base64 encoded CipherText
+     */
+    public static String AESencrypt(final String password, String plainText, byte[] iv){
         try {
             final SecretKeySpec key = generateKey(password);
 
-            byte[] cipherText = encrypt(key, iv, plainText.getBytes(CHARSET));
+            byte[] cipherText = AESencrypt(key, iv, plainText.getBytes(CHARSET));
 
             String encoded = Base64.encodeToString(cipherText, Base64.NO_WRAP);
 
@@ -127,7 +158,7 @@ public class Crypto {
      * @return Encrypted cipher text (not encoded)
      * @throws GeneralSecurityException if something goes wrong during encryption
      */
-    public static byte[] encrypt(final SecretKeySpec key, final byte[] iv, final byte[] message)
+    public static byte[] AESencrypt(final SecretKeySpec key, final byte[] iv, final byte[] message)
             throws GeneralSecurityException {
         final Cipher cipher = Cipher.getInstance(AES_MODE);
         IvParameterSpec ivSpec = new IvParameterSpec(iv);
@@ -149,22 +180,17 @@ public class Crypto {
      * @return message in Plain text (String UTF-8)
      * @throws GeneralSecurityException if there's an issue decrypting
      */
-    public static String decrypt(final String password, String base64EncodedCipherText)
+    public static String AESdecrypt(final String password, String base64EncodedCipherText)
             throws GeneralSecurityException {
 
         try {
             final SecretKeySpec key = generateKey(password);
 
-            log("base64EncodedCipherText", base64EncodedCipherText);
             byte[] decodedCipherText = Base64.decode(base64EncodedCipherText, Base64.NO_WRAP);
-            log("decodedCipherText", decodedCipherText);
 
-            byte[] decryptedBytes = decrypt(key, ivBytes, decodedCipherText);
+            byte[] decryptedBytes = AESdecrypt(key, ivBytes, decodedCipherText);
 
-            log("decryptedBytes", decryptedBytes);
             String message = new String(decryptedBytes, CHARSET);
-            log("message", message);
-
 
             return message;
         } catch (UnsupportedEncodingException e) {
@@ -175,13 +201,20 @@ public class Crypto {
         }
     }
 
-    public static String decrypt(final String password, String base64EncodedCipherText, byte[] iv){
+    /**
+     * Decrypt and decide CipherText using 256-bit AES with key generated from password
+     * @param password string used to generate key
+     * @param base64EncodedCipherText the encrypted message encoded with base64
+     * @param iv custom Initialization Vector
+     * @return message in Plain Text (UTF-8 String)
+     */
+    public static String AESdecrypt(final String password, String base64EncodedCipherText, byte[] iv){
         try {
             final SecretKeySpec key = generateKey(password);
 
             byte[] decodedCipherText = Base64.decode(base64EncodedCipherText, Base64.NO_WRAP);
 
-            byte[] decryptedBytes = decrypt(key, iv, decodedCipherText);
+            byte[] decryptedBytes = AESdecrypt(key, iv, decodedCipherText);
 
             String plainText = new String(decryptedBytes, CHARSET);
 
@@ -201,58 +234,85 @@ public class Crypto {
 
     /**
      * More flexible AES decrypt that doesn't encode
-     *
      * @param key AES key typically 128, 192 or 256 bit
      * @param iv Initiation Vector
      * @param decodedCipherText in bytes (assumed it's already been decoded)
      * @return Decrypted message cipher text (not encoded)
      * @throws GeneralSecurityException if something goes wrong during encryption
      */
-    public static byte[] decrypt(final SecretKeySpec key, final byte[] iv, final byte[] decodedCipherText)
+    public static byte[] AESdecrypt(final SecretKeySpec key, final byte[] iv, final byte[] decodedCipherText)
             throws GeneralSecurityException {
         final Cipher cipher = Cipher.getInstance(AES_MODE);
         IvParameterSpec ivSpec = new IvParameterSpec(iv);
         cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
         byte[] decryptedBytes = cipher.doFinal(decodedCipherText);
 
-        log("decryptedBytes", decryptedBytes);
-
         return decryptedBytes;
     }
+    //endregion
 
 
 
-
-    private static void log(String what, byte[] bytes) {
-        if (DEBUG_LOG_ENABLED)
-            Log.d(TAG, what + "[" + bytes.length + "] [" + bytesToHex(bytes) + "]");
-    }
-
-    private static void log(String what, String value) {
-        if (DEBUG_LOG_ENABLED)
-            Log.d(TAG, what + "[" + value.length() + "] [" + value + "]");
-    }
-
+    //region Digital Signature Algorithm
 
     /**
-     * Converts byte array to hexidecimal useful for logging and fault finding
-     * @param bytes
-     * @return
+     * Generate a pair of 1024-bit Public and Private keys to be used for DSA signing/verifying
+     * @return KeyPair object that contains Private and Public keys
+     * @throws NoSuchProviderException
+     * @throws NoSuchAlgorithmException
      */
-    public static String bytesToHex(byte[] bytes) {
-        final char[] hexArray = {'0', '1', '2', '3', '4', '5', '6', '7', '8',
-                '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-        char[] hexChars = new char[bytes.length * 2];
-        int v;
-        for (int j = 0; j < bytes.length; j++) {
-            v = bytes[j] & 0xFF;
-            hexChars[j * 2] = hexArray[v >>> 4];
-            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
-        }
-        return new String(hexChars);
-    }
+    public static KeyPair generateDSAKeyPair()
+            throws NoSuchProviderException, NoSuchAlgorithmException {
+        //Create a Key Pair Generator
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DSA", "SUN");
+        SecureRandom random = SecureRandom.getInstance("SHA1PRNG","SUN");
+        keyGen.initialize(1024, random);
 
-    public Crypto(){
+        return keyGen.generateKeyPair();
 
     }
+
+    /**
+     * Generate a DSA signature
+     * @param privateKey Private Keys used to sign the message
+     * @param message Message to sign
+     * @return DSA signature of the message
+     * @throws NoSuchProviderException
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeyException
+     * @throws SignatureException
+     */
+    public static byte[] DSASign(PrivateKey privateKey, byte[] message)
+            throws NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+        Signature dsa = Signature.getInstance("SHA1withDSA", "SUN");
+        dsa.initSign(privateKey);
+        dsa.update(message);
+
+        return dsa.sign();
+    }
+
+    /**
+     * Verify DSA signature
+     * @param publicKey Public Key used for verification
+     * @param message message to verify
+     * @param signature DSA signature of the message
+     * @return whether the signature os correct or not
+     * @throws NoSuchProviderException
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeyException
+     * @throws SignatureException
+     */
+    public static boolean DSAVerify(PublicKey publicKey, byte[] message, byte[] signature)
+            throws NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+
+        Signature sig = Signature.getInstance("SHA1withDSA", "SUN");
+        sig.initVerify(publicKey);
+        sig.update(message);
+
+        return sig.verify(signature);
+
+    }
+    //endregion
+
+
 }

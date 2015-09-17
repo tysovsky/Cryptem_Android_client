@@ -1,11 +1,15 @@
 package com.secure.tysovsky.cryptomessanger;
 
+import android.app.ActionBar;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.AsyncTask;
 import android.provider.Settings;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -40,7 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class LoginActivity extends ActionBarActivity {
+public class LoginActivity extends AppCompatActivity {
 
     ExpandableLayout loginPanel;
     ExpandableLayout registerPanel;
@@ -73,7 +77,9 @@ public class LoginActivity extends ActionBarActivity {
         setContentView(R.layout.activity_login);
 
         Utils.Log("----APPLICATION STARTED----");
-        setTitle("Welcome");
+        setTitle(R.string.welcome);
+        android.support.v7.app.ActionBar bar = getSupportActionBar();
+        bar.setBackgroundDrawable(new ColorDrawable(getResources().getColor(R.color.primary)));
 
         SharedPreferences prefs = getSharedPreferences("CryptoSP", MODE_PRIVATE);
         String prefUsername = prefs.getString("username", null);

@@ -1,6 +1,7 @@
 package com.secure.tysovsky.cryptomessanger;
 
 import android.content.DialogInterface;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Base64;
@@ -55,6 +56,7 @@ public class ChatActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_conversation);
+        getSupportActionBar().setBackgroundDrawable(new ColorDrawable(getResources().getColor(R.color.primary)));
 
         Utils.Log("-----");
         //Retrieve the recipient and sender usernames
@@ -106,15 +108,19 @@ public class ChatActivity extends ActionBarActivity {
 
         //Dialogue for checking the corectness of a password
        MaterialDialog dialog = new MaterialDialog.Builder(ChatActivity.this)
-                .title("Enter Password")
+                .title(R.string.enter_password)
+                .titleColor(getResources().getColor(R.color.lightest))
                 .customView(R.layout.layout_enter_password, true)
-                .positiveText("Ok")
-                .negativeText("Cancel")
+                .backgroundColor(getResources().getColor(R.color.light))
+                .positiveText(R.string.ok)
+                .negativeText(R.string.cancel)
+                .positiveColor(getResources().getColor(R.color.lightest))
+                .negativeColor(getResources().getColor(R.color.lightest))
                 .dismissListener(new DialogInterface.OnDismissListener() {
                     @Override
                     public void onDismiss(DialogInterface dialog) {
                         if(!isAuthenticated){
-                            Toast.makeText(ChatActivity.this,"Please enter a password", Toast.LENGTH_LONG).show();
+                            Toast.makeText(ChatActivity.this,R.string.please_enter_password, Toast.LENGTH_LONG).show();
                             finish();
                         }
                     }
@@ -129,9 +135,8 @@ public class ChatActivity extends ActionBarActivity {
 
 
                         if(!AuthMessage.isEmpty() && AuthIV != null){
-                            String decryptedMessage = Crypto.decrypt(typedPass, AuthMessage, AuthIV);
+                            String decryptedMessage = Crypto.AESdecrypt(typedPass, AuthMessage, AuthIV);
                             if(decryptedMessage.equals(Utils.AUTHENTICATION_MESSAGE)){
-                                Toast.makeText(ChatActivity.this, "Correct password", Toast.LENGTH_LONG).show();
                                 isAuthenticated = true;
                                 password = typedPass;
                                 socket.on("message", handleIncomingMessages);
@@ -145,13 +150,13 @@ public class ChatActivity extends ActionBarActivity {
                                 socket.emit("retrieve", data);
                             }
                             else{
-                                Toast.makeText(ChatActivity.this, "Wrong Password", Toast.LENGTH_LONG).show();
+                                Toast.makeText(ChatActivity.this, R.string.wrong_password, Toast.LENGTH_LONG).show();
                                 finish();
                             }
                         }
 
                         else{
-                            Toast.makeText(ChatActivity.this, "Server error", Toast.LENGTH_LONG).show();
+                            Toast.makeText(ChatActivity.this, R.string.server_error, Toast.LENGTH_LONG).show();
                             finish();
                         }
 
@@ -160,7 +165,7 @@ public class ChatActivity extends ActionBarActivity {
                     @Override
                     public void onNegative(MaterialDialog dialog) {
                         super.onNegative(dialog);
-                        Toast.makeText(ChatActivity.this, "Please enter a password", Toast.LENGTH_LONG).show();
+                        Toast.makeText(ChatActivity.this, R.string.please_enter_password, Toast.LENGTH_LONG).show();
                         finish();
                     }
 
@@ -238,10 +243,10 @@ public class ChatActivity extends ActionBarActivity {
         Utils.Log("ChatActivity.sendMessage().ivString: " + ivString);
         //Encrypt the message
         if(_password.isEmpty()){
-            encryptedMessage = Crypto.encrypt(password, message, IV);
+            encryptedMessage = Crypto.AESencrypt(password, message, IV);
         }
         else{
-            encryptedMessage = Crypto.encrypt(_password, message, IV);
+            encryptedMessage = Crypto.AESencrypt(_password, message, IV);
         }
 
         Utils.Log("ChatActivity.sendMessage().encryptedMessage: " + encryptedMessage);
@@ -281,7 +286,7 @@ public class ChatActivity extends ActionBarActivity {
         String ivString = Base64.encodeToString(IV, Base64.NO_WRAP);
         Utils.Log("sendMessage(~).ivString: " + ivString);
         //Encrypt the message
-        encryptedMessage = Crypto.encrypt(_password, message, IV);
+        encryptedMessage = Crypto.AESencrypt(_password, message, IV);
         Utils.Log("sendMessage(~).encryptedMessage: " + encryptedMessage);
 
 
@@ -356,7 +361,7 @@ public class ChatActivity extends ActionBarActivity {
                         {
                             Utils.Log("ChatActivity.handleIncomingMessages.ivString: " + data.getString("iv"));
                             IV = Base64.decode(data.getString("iv"), Base64.NO_WRAP);
-                            decryptedMessage = Crypto.decrypt(password, message, IV);
+                            decryptedMessage = Crypto.AESdecrypt(password, message, IV);
                             Utils.Log("ChatActivity.handleIncomingMessages.decryptedMessage: " + decryptedMessage);
                         }
                         finally {

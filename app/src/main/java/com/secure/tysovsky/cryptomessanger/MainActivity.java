@@ -2,6 +2,7 @@ package com.secure.tysovsky.cryptomessanger;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.drawable.ColorDrawable;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -57,6 +58,7 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        getSupportActionBar().setBackgroundDrawable(new ColorDrawable(getResources().getColor(R.color.primary)));
         Bundle extras = getIntent().getExtras();
         if(extras != null){
             username = extras.getString("username");
@@ -73,9 +75,13 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onClick(View v) {
                 MaterialDialog startConversationDialog = new MaterialDialog.Builder(MainActivity.this)
-                        .title("New Conversation")
+                        .title(R.string.new_conversation)
+                        .titleColor(getResources().getColor(R.color.white))
+                        .backgroundColor(getResources().getColor(R.color.light))
                         .customView(R.layout.layout_new_conversation, true)
-                        .positiveText("Send").negativeText("Cancel")
+                        .positiveText(R.string.send).negativeText(R.string.cancel)
+                        .negativeColor(getResources().getColor(R.color.lightest))
+                        .positiveColor(getResources().getColor(R.color.lightest))
                         .callback(new MaterialDialog.ButtonCallback() {
                             @Override
                             public void onPositive(MaterialDialog dialog) {
@@ -85,7 +91,7 @@ public class MainActivity extends ActionBarActivity {
                                 String _password = ETConversationPassword.getText().toString();
                                 String _message = ETNewMessage.getText().toString();
                                 if (_recipient.isEmpty() || _message.isEmpty() || _password.isEmpty()) {
-                                    Toast.makeText(MainActivity.this, "Please fill in all the fields", Toast.LENGTH_LONG).show();
+                                    Toast.makeText(MainActivity.this, R.string.please_fill_all_fields, Toast.LENGTH_LONG).show();
                                     return;
                                 }
                                 intent.putExtra("recipient", _recipient);
@@ -144,10 +150,10 @@ public class MainActivity extends ActionBarActivity {
         int id = item.getItemId();
         switch(id){
             case R.id.menu_settings:
-                Toast.makeText(this, "Not implemented yet", Toast.LENGTH_LONG).show();
+                Intent i = new Intent(MainActivity.this, SettingsActivity.class);
+                startActivity(i);
                 break;
             case R.id.menu_logout:
-                Toast.makeText(this, "Logout Pressed", Toast.LENGTH_LONG).show();
                 SharedPreferences preferences = getSharedPreferences("CryptoSP", MODE_PRIVATE);
                 String prefUsername = preferences.getString("username", null);
                 if(prefUsername != null){

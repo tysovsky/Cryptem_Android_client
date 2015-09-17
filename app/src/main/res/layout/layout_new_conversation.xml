@@ -8,23 +8,32 @@
     <com.rengwuxian.materialedittext.MaterialEditText
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:met_primaryColor="#ff266dff"
-        android:hint="Recipent:"
+        app:met_primaryColor="@color/lightest"
+        app:met_baseColor="@color/lightest"
+        android:hint="@string/recipient"
+        app:met_textColor="@color/white"
+        android:textColorHint="@color/lightest"
         android:id="@+id/new_conversation_recipient"
         app:met_floatingLabel="highlight"/>
     <com.rengwuxian.materialedittext.MaterialEditText
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:met_primaryColor="#ff266dff"
-        android:hint="Password:"
+        app:met_primaryColor="@color/lightest"
+        app:met_baseColor="@color/lightest"
+        app:met_textColor="@color/white"
+        android:textColorHint="@color/lightest"
+        android:hint="@string/password"
         android:id="@+id/new_conversation_password"
         app:met_floatingLabel="highlight"
         android:inputType="textPassword" />
     <com.rengwuxian.materialedittext.MaterialEditText
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:met_primaryColor="#ff266dff"
-        android:hint="Message:"
+        app:met_primaryColor="@color/lightest"
+        app:met_baseColor="@color/lightest"
+        app:met_textColor="@color/white"
+        android:textColorHint="@color/lightest"
+        android:hint="@string/message"
         android:id="@+id/new_conversation_message"
         app:met_floatingLabel="highlight"/>
 </LinearLayout>

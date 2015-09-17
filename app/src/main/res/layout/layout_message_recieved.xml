@@ -21,13 +21,14 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="#B6B6B6">
+            android:background="@color/dark_gray">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:padding="5dp"
                 android:textSize="15dp"
+                android:textColor="@color/lightest"
                 android:text="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
                 android:id="@+id/message_text"/>
             <TextView
@@ -35,6 +36,7 @@
                 android:layout_height="wrap_content"
                 android:padding="5dp"
                 android:layout_gravity="right"
+                android:textColor="@color/lightest"
                 android:text="01/01/2015 01:00AM"
                 android:textSize = "10dp"
                 android:id="@+id/message_date"/>
