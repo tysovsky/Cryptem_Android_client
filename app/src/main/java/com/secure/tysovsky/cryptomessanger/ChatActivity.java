@@ -22,6 +22,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.net.URISyntaxException;
+import java.security.KeyPair;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -35,6 +36,8 @@ public class ChatActivity extends ActionBarActivity {
     private static String AuthMessage = "";
     private static byte[] AuthIV = null;
     private Boolean isAuthenticated = false;
+
+
 
     List<Message> messages = new ArrayList<Message>();
     ListView messagesListView;

@@ -4,6 +4,7 @@ import android.util.Base64;
 import android.util.Log;
 
 import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
@@ -38,8 +39,6 @@ public class Crypto {
     //AESCrypt-ObjC uses blank IV (not the best security, but the aim here is compatibility)
     private static final byte[] ivBytes = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-    //togglable log option (please turn off in live!)
-    public static boolean DEBUG_LOG_ENABLED = false;
 
 
     /**
@@ -194,7 +193,7 @@ public class Crypto {
 
             return message;
         } catch (UnsupportedEncodingException e) {
-            if (DEBUG_LOG_ENABLED)
+            if (Utils.DEBUG)
                 Log.e(TAG, "UnsupportedEncodingException ", e);
 
             throw new GeneralSecurityException(e);
@@ -250,7 +249,6 @@ public class Crypto {
         return decryptedBytes;
     }
     //endregion
-
 
 
     //region Digital Signature Algorithm
@@ -314,5 +312,41 @@ public class Crypto {
     }
     //endregion
 
+
+    //region Diffie-Hellman Key Exchange
+
+    /**
+     * Generate randomly distributed, 512-bit private key for Diffie-Hellman
+     * @return 512-bit random key
+     */
+    public byte[] DHGeneratePrivateKey(){
+        SecureRandom random = new SecureRandom();
+        BigInteger privateKey = new BigInteger(512, random);
+        return privateKey.toByteArray();
+    }
+
+    /**
+     * Generate a public key for Diffie-Hellman
+     * @param generator the generator (primitive element) used as a base for exponentiation
+     * @param modulus modulus used
+     * @param privateKey user's private key
+     * @return Diffie Hellman public key that can be shared with the other party
+     */
+    public byte[] DHGeneratePublicKey(BigInteger generator, BigInteger modulus, BigInteger privateKey){
+        return generator.modPow(privateKey, modulus).toByteArray();
+    }
+
+    /**
+     * Get a secret shared between two parties
+     * @param modulus modulus ised
+     * @param publicKey public key from the other party
+     * @param privateKey user's private key
+     * @return A secret shared between both parties
+     */
+    public byte[] DHGenerateSharedPrivateKey(BigInteger modulus, BigInteger publicKey, BigInteger privateKey){
+        return publicKey.modPow(privateKey, modulus).toByteArray();
+    }
+
+    //endregion
 
 }
