@@ -1,12 +1,16 @@
-package com.secure.tysovsky.cryptomessanger;
+package com.secure.tysovsky.Cryptem;
 
 import android.util.Base64;
 import android.util.Log;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
@@ -15,12 +19,28 @@ import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.Security;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.DSAPublicKeySpec;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPrivateKeySpec;
+import java.security.spec.RSAPublicKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyAgreement;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+
+import org.spongycastle.jce.provider.BouncyCastleProvider;
+import org.spongycastle.openssl.jcajce.JcaPEMWriter;
 
 /**
  * Created by tysovsky on 8/1/2015.
@@ -59,6 +79,10 @@ public class Crypto {
         return secretKeySpec;
     }
 
+    public static BigInteger getPrime(int bitSize){
+        return BigInteger.probablePrime(bitSize, new SecureRandom());
+    }
+
     /**
      * Generate random Initialization Vector of size 16 bytes
      * @return A byte array of random bytes
@@ -66,7 +90,7 @@ public class Crypto {
     public static byte[] GenerateRandomIV()
     {
         byte[] IV = new byte[16];
-        //Use the same IV for debugging
+        //Use constant, all 0 iv for debugging
         if(Utils.DEBUG){
             for(int i = 0; i < IV.length; i++){
                 IV[i] = 0x00;
@@ -249,69 +273,7 @@ public class Crypto {
         return decryptedBytes;
     }
     //endregion
-
-
-    //region Digital Signature Algorithm
-
-    /**
-     * Generate a pair of 1024-bit Public and Private keys to be used for DSA signing/verifying
-     * @return KeyPair object that contains Private and Public keys
-     * @throws NoSuchProviderException
-     * @throws NoSuchAlgorithmException
-     */
-    public static KeyPair generateDSAKeyPair()
-            throws NoSuchProviderException, NoSuchAlgorithmException {
-        //Create a Key Pair Generator
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DSA", "SUN");
-        SecureRandom random = SecureRandom.getInstance("SHA1PRNG","SUN");
-        keyGen.initialize(1024, random);
-
-        return keyGen.generateKeyPair();
-
-    }
-
-    /**
-     * Generate a DSA signature
-     * @param privateKey Private Keys used to sign the message
-     * @param message Message to sign
-     * @return DSA signature of the message
-     * @throws NoSuchProviderException
-     * @throws NoSuchAlgorithmException
-     * @throws InvalidKeyException
-     * @throws SignatureException
-     */
-    public static byte[] DSASign(PrivateKey privateKey, byte[] message)
-            throws NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
-        Signature dsa = Signature.getInstance("SHA1withDSA", "SUN");
-        dsa.initSign(privateKey);
-        dsa.update(message);
-
-        return dsa.sign();
-    }
-
-    /**
-     * Verify DSA signature
-     * @param publicKey Public Key used for verification
-     * @param message message to verify
-     * @param signature DSA signature of the message
-     * @return whether the signature os correct or not
-     * @throws NoSuchProviderException
-     * @throws NoSuchAlgorithmException
-     * @throws InvalidKeyException
-     * @throws SignatureException
-     */
-    public static boolean DSAVerify(PublicKey publicKey, byte[] message, byte[] signature)
-            throws NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
-
-        Signature sig = Signature.getInstance("SHA1withDSA", "SUN");
-        sig.initVerify(publicKey);
-        sig.update(message);
-
-        return sig.verify(signature);
-
-    }
-    //endregion
-
+    
 
     //region Diffie-Hellman Key Exchange
 
@@ -319,7 +281,7 @@ public class Crypto {
      * Generate randomly distributed, 512-bit private key for Diffie-Hellman
      * @return 512-bit random key
      */
-    public byte[] DHGeneratePrivateKey(){
+    public static byte[] DHGeneratePrivateKey(){
         SecureRandom random = new SecureRandom();
         BigInteger privateKey = new BigInteger(512, random);
         return privateKey.toByteArray();
@@ -327,25 +289,163 @@ public class Crypto {
 
     /**
      * Generate a public key for Diffie-Hellman
-     * @param generator the generator (primitive element) used as a base for exponentiation
-     * @param modulus modulus used
+     * @param prime modulus used
      * @param privateKey user's private key
      * @return Diffie Hellman public key that can be shared with the other party
      */
-    public byte[] DHGeneratePublicKey(BigInteger generator, BigInteger modulus, BigInteger privateKey){
-        return generator.modPow(privateKey, modulus).toByteArray();
+    public static byte[] DHGeneratePublicKey(byte[] prime, byte[] privateKey){
+        BigInteger _generator = new BigInteger("2");
+        BigInteger _prime = new BigInteger(prime);
+        BigInteger _privateKey = new BigInteger(privateKey);
+
+        Utils.Log("Prime: " + _prime.toString());
+        Utils.Log("Generator: " + _generator.toString());
+
+        return _generator.modPow(_privateKey, _prime).toByteArray();
     }
 
     /**
      * Get a secret shared between two parties
-     * @param modulus modulus ised
+     * @param prime modulus ised
      * @param publicKey public key from the other party
      * @param privateKey user's private key
      * @return A secret shared between both parties
      */
-    public byte[] DHGenerateSharedPrivateKey(BigInteger modulus, BigInteger publicKey, BigInteger privateKey){
-        return publicKey.modPow(privateKey, modulus).toByteArray();
+    public static byte[] DHGenerateSharedPrivateKey(byte[] prime, byte[] publicKey, byte[] privateKey){
+
+        BigInteger _prime = new BigInteger(prime);
+        BigInteger _publicKey = new BigInteger(publicKey);
+        BigInteger _privateKey = new BigInteger(privateKey);
+        return _publicKey.modPow(_privateKey, _prime).toByteArray();
     }
+
+    //endregion
+
+
+    //region Rivest-Shamir-Adleman
+
+    /**
+     * Generate a pair of RSA keys of specified size
+     * @param size the size of the modulus
+     * @return KeyPair containing Private and Public Keys
+     * @throws NoSuchAlgorithmException
+     */
+    public static KeyPair RSAGenerateKeyPair(int size)
+            throws NoSuchAlgorithmException {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+        kpg.initialize(size);
+        return kpg.generateKeyPair();
+    }
+
+    /**
+     * Generate a pair of RSA keys of size 2048
+     * @return KeyPair containing Private and Public Keys
+     * @throws NoSuchAlgorithmException
+     */
+    public static KeyPair RSAGenerateKeyPair()
+            throws NoSuchAlgorithmException {
+        return RSAGenerateKeyPair(2048);
+    }
+
+
+
+
+    public static byte[] RSAEncrypt(byte[] data, PublicKey key)
+            throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        byte[] cipherData = cipher.doFinal(data);
+
+        return cipherData;
+    }
+
+    public static byte[] RSAEncrypt(byte[] data, PrivateKey key)
+            throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        byte[] cipherData = cipher.doFinal(data);
+
+        return cipherData;
+    }
+
+    public static byte[] RSADecrypt(byte[] data, PrivateKey key)
+            throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        byte[] plainText = cipher.doFinal(data);
+
+        return plainText;
+    }
+
+    public static byte[] RSADecrypt(byte[] data, PublicKey key)
+            throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        byte[] plainText = cipher.doFinal(data);
+
+        return plainText;
+    }
+
+    public static byte[] RSASign(byte[] data, PrivateKey key)
+            throws NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+
+        Security.addProvider(new BouncyCastleProvider());
+        Signature signature = Signature.getInstance("SHA256withRSA", "BC");
+        signature.initSign(key, new SecureRandom());
+        signature.update(data);
+        byte[] sigBytes = signature.sign();
+
+        return sigBytes;
+    }
+
+
+    public static boolean RSAVerify(byte[] data, byte[] signature, PublicKey key)
+            throws NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+        Security.addProvider(new BouncyCastleProvider());
+        Signature sig = Signature.getInstance("SHA256withRSA", "BC");
+        sig.initVerify(key);
+        sig.update(data);
+
+        boolean result = sig.verify(signature);
+
+        return result;
+    }
+
+    public static String RSAtoPemString(PublicKey key)
+            throws IOException {
+        StringWriter stringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter);
+        pemWriter.writeObject(key);
+        pemWriter.close();
+
+        return stringWriter.toString();
+    }
+
+    public static PrivateKey RSAStringToPrivateKey(String key)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
+        byte[] keyBytes = Base64.decode(key, Base64.NO_WRAP);
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
+        KeyFactory factory = KeyFactory.getInstance("RSA");
+        PrivateKey privateKey = factory.generatePrivate(keySpec);
+
+        return privateKey;
+    }
+
+    public static PublicKey RSAStrigToPublicKey(String key)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
+
+        key = key.replaceAll("(-+BEGIN PUBLIC KEY-+\\r?\\n|-+END PUBLIC KEY-+\\r?\\n?)", "");
+
+
+        byte[] decoded = Base64.decode(key, Base64.NO_WRAP);
+
+        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(decoded);
+        KeyFactory factory = KeyFactory.getInstance("RSA");
+        PublicKey pkey = factory.generatePublic(keySpec);
+
+        return pkey;
+    }
+
 
     //endregion
 

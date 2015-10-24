@@ -1,4 +1,4 @@
-package com.secure.tysovsky.cryptomessanger;
+package com.secure.tysovsky.Cryptem;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;
