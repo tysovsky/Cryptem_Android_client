@@ -10,14 +10,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.melnykov.fab.FloatingActionButton;
-import com.squareup.okhttp.internal.Util;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -46,7 +44,7 @@ public class ConversationsFragment extends Fragment {
     public ArrayList<Conversation> conversations = new ArrayList<>();
     ArrayAdapter<Conversation> adapter;
 
-    FloatingActionButton newConversation;
+    FloatingActionButton newConversationButton;
 
     EditText newConversationRecipient;
 
@@ -83,8 +81,8 @@ public class ConversationsFragment extends Fragment {
         conversationsList.setAdapter(adapter);
         conversationsList.setOnItemLongClickListener(onItemLongClickListener);
 
-        newConversation = (FloatingActionButton)view.findViewById(R.id.btn_new_conversation);
-        newConversation.setOnClickListener(newConversationOnClickListener);
+        newConversationButton = (FloatingActionButton)view.findViewById(R.id.btn_new_conversation);
+        newConversationButton.setOnClickListener(newConversationOnClickListener);
 
 
         return view;
@@ -155,7 +153,7 @@ public class ConversationsFragment extends Fragment {
                                     conversationClickedListener.onConversationClicked(dbManager.getConversation(recipient));
                                 }
 
-                                else if(!dbManager.getKey(recipient).isEmpty()){
+                                else if(!dbManager.getAESKey(recipient).isEmpty()){
                                     dbManager.addConversation(new Conversation(recipient, 0));
                                 }
 
@@ -201,8 +199,25 @@ public class ConversationsFragment extends Fragment {
                                         }
 
                                         @Override
-                                        public void onResponse(String result) {
-                                            Utils.Log(result);
+                                        public void onResponse(String response) {
+
+                                            Utils.Log(response);
+
+                                            try {
+                                                JSONObject data = new JSONObject(response);
+                                                if(data.getString("status").equals(Utils.RESPONSE_SUCCESS)){
+                                                    String rsaKeyEnc = data.getString("rsakeyenc");
+                                                    String rsaKeySign = data.getString("rsakeysign");
+
+                                                    dbManager.insertRSAKeyEnc(recipient, rsaKeyEnc);
+                                                    dbManager.insertRSAKeySign(recipient, rsaKeySign);
+                                                }
+
+                                            } catch (JSONException e) {
+                                                e.printStackTrace();
+                                            }
+
+
                                         }
                                     }.execute();
 

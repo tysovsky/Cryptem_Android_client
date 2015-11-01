@@ -44,8 +44,8 @@ public class MessagesAdapter extends ArrayAdapter<Message>{
         TextView messageDate = (TextView) convertView.findViewById(R.id.message_date);
 
         if (message.isEncrypted()) {
-            if (!dbManager.getKey(recipient).isEmpty()) {
-                String key = dbManager.getKey(recipient);
+            if (!dbManager.getAESKey(recipient).isEmpty()) {
+                String key = dbManager.getAESKey(recipient);
                 Utils.Log("IV: " + message.iv);
                 byte[] iv = Base64.decode(message.getIv(), Base64.NO_WRAP);
                 Utils.Log("IV size: " + iv.length);

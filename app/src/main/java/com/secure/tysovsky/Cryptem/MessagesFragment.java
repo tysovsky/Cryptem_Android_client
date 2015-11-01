@@ -5,10 +5,8 @@ import android.app.Fragment;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -19,7 +17,6 @@ import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -34,6 +31,12 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.message.BasicNameValuePair;
 
 import java.io.UnsupportedEncodingException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -74,8 +77,6 @@ public class MessagesFragment extends Fragment{
             conversation.setUsername(savedInstanceState.getString("username", ""));
             conversation.setId(savedInstanceState.getInt("_id", 0));
             conversation.setUnreadMessages(savedInstanceState.getInt("unreadMessages", 0));
-
-
 
             //actionBarChangeRequestListener.OnActionBarChangeRequest(Utils.ACTION_BAR_NAME_CHANGE, conversation.getUsername());
             //actionBarChangeRequestListener.OnActionBarChangeRequest(Utils.ACTION_BAR_ENABLE_BACK_BUTTON, null);
@@ -290,14 +291,37 @@ public class MessagesFragment extends Fragment{
                 message.setRecipient(conversation.getUsername());
 
                 //If DHKE was completed and a key exists
-                if(!dbManager.getKey(conversation.getUsername()).isEmpty()){
-                    String key = dbManager.getKey(conversation.getUsername());
+                if(!dbManager.getAESKey(conversation.getUsername()).isEmpty()){
+                    String signature = "";
+                    String key = dbManager.getAESKey(conversation.getUsername());
                     byte[] iv = Crypto.GenerateRandomIV();
-                    final String cipherText = Crypto.AESencrypt(key, messageText.getText().toString(), iv);
+                    final String plainText = messageText.getText().toString();
+                    final String cipherText = Crypto.AESencrypt(key, plainText, iv);
                     final String base64IV = Base64.encodeToString(iv, Base64.NO_WRAP);
+
+
+                    try {
+                        PrivateKey RSAKeySign = Crypto.RSAStringToPrivateKey(dbManager.getRSAKeySignaturePrivate());
+
+                        signature = Base64.encodeToString(Crypto.RSASign(Base64.decode(cipherText, Base64.NO_WRAP), RSAKeySign), Base64.NO_WRAP);
+
+
+                    } catch (NoSuchAlgorithmException e) {
+                        e.printStackTrace();
+                    } catch (InvalidKeySpecException e) {
+                        e.printStackTrace();
+                    } catch (NoSuchProviderException e) {
+                        e.printStackTrace();
+                    } catch (InvalidKeyException e) {
+                        e.printStackTrace();
+                    } catch (SignatureException e) {
+                        e.printStackTrace();
+                    }
+
 
                     message.setMessage(cipherText);
                     message.setIv(base64IV);
+                    message.setSignature(signature);
 
                     new HttpHandler() {
                         @Override
@@ -305,10 +329,11 @@ public class MessagesFragment extends Fragment{
                             HttpPost httpPost = new HttpPost(Utils.SERVER_SEND_MESSAGE);
 
                             List<NameValuePair> nameValuePairs = new ArrayList<>();
-                            nameValuePairs.add(new BasicNameValuePair("sender", username));
-                            nameValuePairs.add(new BasicNameValuePair("recipient", conversation.getUsername()));
+                            nameValuePairs.add(new BasicNameValuePair("sender", message.getSender()));
+                            nameValuePairs.add(new BasicNameValuePair("recipient", message.getRecipient()));
                             nameValuePairs.add(new BasicNameValuePair("message", message.getMessage()));
                             nameValuePairs.add(new BasicNameValuePair("iv", message.getIv()));
+                            nameValuePairs.add(new BasicNameValuePair("signature", message.getSignature()));
 
                             try {
                                 httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
@@ -322,20 +347,21 @@ public class MessagesFragment extends Fragment{
                         @Override
                         public void onResponse(String result) {
                             Utils.Log("HttpResult: " + result);
+
+                            message.setMessage(plainText);
+                            message.setEncrypted(false);
+
+                            dbManager.addMessage(message);
+
+
+                            messages.add(message);
+                            adapter.notifyDataSetChanged();
+
+                            messageList.setSelection(messages.size() + 1);
                         }
                     }.execute();
 
-                    dbManager.addMessage(message);
 
-                    message.setMessage(messageText.getText().toString());
-                    message.setEncrypted(false);
-
-
-                    messages.add(message);
-                    adapter.notifyDataSetChanged();
-
-
-                    messageList.setSelection(messages.size() + 1);
                     messageText.setText("");
 
                 }
@@ -358,7 +384,6 @@ public class MessagesFragment extends Fragment{
                 }
 
             }
-
 
 
 

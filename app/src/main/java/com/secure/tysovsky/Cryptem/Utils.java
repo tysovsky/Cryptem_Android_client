@@ -14,8 +14,8 @@ import java.util.ArrayList;
  */
 public class Utils {
 
-    public static final String RESPONSE_LOGIN_SUCCESS = "success";
-    public static final String RESPONSE_LOGIN_FAILURE ="failure";
+    public static final String RESPONSE_SUCCESS = "success";
+    public static final String RESPONSE_FAILURE ="failure";
     public static final String AUTHENTICATION_MESSAGE = "You have been successfully logged in";
     public static final boolean DEBUG = true;
 
@@ -31,8 +31,8 @@ public class Utils {
     public static final String TYPE_DHKEINITIATED = "dhkeinitiated";
     public static final String TYPE_DHKEKEYAVAILABLE = "dhkekeyavailable";
 
-    public static String SERVER_ADRESS = "http://ec2-52-27-83-251.us-west-2.compute.amazonaws.com";
-    public static String SERVER_REGISTER = "http://ec2-52-27-83-251.us-west-2.compute.amazonaws.com/register";
+    public static String SERVER_ADRESS = "http://52.27.83.251/";
+    public static String SERVER_REGISTER = "http://52.27.83.251/register";
     public static String SERVER_UPDATE_GCMID = "http://ec2-52-27-83-251.us-west-2.compute.amazonaws.com/updategcmid";
     public static String SERVER_SEND_MESSAGE = "http://ec2-52-27-83-251.us-west-2.compute.amazonaws.com/send";
     public static String SERVER_GET_MESSAGES = "http://ec2-52-27-83-251.us-west-2.compute.amazonaws.com/getmessages";

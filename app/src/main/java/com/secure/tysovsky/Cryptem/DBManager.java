@@ -17,11 +17,13 @@ import java.util.ArrayList;
 public class DBManager extends SQLiteOpenHelper {
     private static final int DATABASE_VERSION = 15;
     private static final String DATABASE_NAME = "cryptem.db";
+
     private static final String TABLE_USER_DETAILS = "userdetails";
     private static final String TABLE_CONVERSATIONS = "conversations";
     private static final String TABLE_MESSAGES = "messages";
     private static final String TABLE_KEYS = "keys";
     private static final String TABLE_DHKE = "dhke";
+
     private static final String COLUMN_ID = "_id";
     private static final String COLUMN_USERNAME = "username";
     private static final String COLUMN_UNREAD_MESSAGES = "unread";
@@ -29,6 +31,8 @@ public class DBManager extends SQLiteOpenHelper {
     private static final String COLUMN_SENDER = "sender";
     private static final String COLUMN_RECIPIENT = "recipient";
     private static final String COLUMN_KEY = "key";
+    private static final String COLUMN_RSAKEYSIGN = "rsakeysign";
+    private static final String COLUMN_RSAKEYENC = "rsakeyenc";
     private static final String COLUMN_IV = "iv";
     private static final String COLUMN_DHKE_PRIME = "prime";
     private static final String COLUMN_DHKE_GENERATOR = "generator";
@@ -73,6 +77,8 @@ public class DBManager extends SQLiteOpenHelper {
                 COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COLUMN_USERNAME + " TEXT, " +
                 COLUMN_KEY + " TEXT, " +
+                COLUMN_RSAKEYSIGN + " TEXT, " +
+                COLUMN_RSAKEYENC + " TEXT, " +
                 COLUMN_ENCRYPTED + " TEXT " +
                 ");";
 
@@ -580,18 +586,60 @@ public class DBManager extends SQLiteOpenHelper {
     //endregion
 
 
-    //region AES Keys
+    //region Keys
     public void insertKey(String username, String key){
-        ContentValues values = new ContentValues();
-        values.put(COLUMN_USERNAME, username);
-        values.put(COLUMN_KEY, key);
-
         SQLiteDatabase db = getWritableDatabase();
-        db.insert(TABLE_KEYS, null, values);
+
+        ContentValues cv = new ContentValues();
+        cv.put("username", username);
+        db.insertOrThrow(TABLE_KEYS, null, cv);
+
+        String QUERY = "UPDATE " + TABLE_KEYS +
+                " SET " + COLUMN_KEY + "='" + key + "'" +
+                " WHERE " + COLUMN_USERNAME + "='" + username + "';";
+
+
+        db.execSQL(QUERY);
         db.close();
     }
 
-    public String getKey(String username){
+    public void insertRSAKeySign(String username, String key){
+
+        SQLiteDatabase db = getWritableDatabase();
+
+        ContentValues cv = new ContentValues();
+        cv.put("username", username);
+        db.insertOrThrow(TABLE_KEYS, null, cv);
+
+        String QUERY = "UPDATE " + TABLE_KEYS +
+                " SET " + COLUMN_RSAKEYSIGN + "='" + key + "'" +
+                " WHERE " + COLUMN_USERNAME + "='" + username + "';";
+
+
+        db.execSQL(QUERY);
+        db.close();
+    }
+
+    public void insertRSAKeyEnc(String username, String key){
+        SQLiteDatabase db = getWritableDatabase();
+
+        Utils.Log("hey");
+
+        ContentValues cv = new ContentValues();
+        cv.put("username", username);
+        db.insertOrThrow(TABLE_KEYS, null, cv);
+
+        String QUERY = "UPDATE " + TABLE_KEYS +
+                " SET " + COLUMN_RSAKEYENC + "='" + key + "'" +
+                " WHERE " + COLUMN_USERNAME + "='" + username + "';";
+
+
+        db.execSQL(QUERY);
+        db.close();
+    }
+
+
+    public String getAESKey(String username){
         String key = "";
 
         String QUERY = "SELECT * FROM " + TABLE_KEYS +
@@ -613,7 +661,47 @@ public class DBManager extends SQLiteOpenHelper {
 
     }
 
-    public void updateKey(String username, String key){
+    public String getRSAKeySign(String username){
+        String key = "";
+
+        String QUERY = "SELECT * FROM " + TABLE_KEYS +
+                " WHERE " + COLUMN_USERNAME + "='" + username + "';";
+        SQLiteDatabase db = getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(QUERY, null);
+        cursor.moveToFirst();
+
+        if(cursor.getCount() > 0){
+            if(cursor.getString(cursor.getColumnIndex(COLUMN_RSAKEYSIGN)) != null){
+                key = cursor.getString(cursor.getColumnIndex(COLUMN_RSAKEYSIGN));
+            }
+        }
+
+        return key;
+
+    }
+
+    public String getRSAKeyEnc(String username){
+        String key = "";
+
+        String QUERY = "SELECT * FROM " + TABLE_KEYS +
+                " WHERE " + COLUMN_USERNAME + "='" + username + "';";
+        SQLiteDatabase db = getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(QUERY, null);
+        cursor.moveToFirst();
+
+        if(cursor.getCount() > 0){
+            if(cursor.getString(cursor.getColumnIndex(COLUMN_RSAKEYENC)) != null){
+                key = cursor.getString(cursor.getColumnIndex(COLUMN_RSAKEYENC));
+            }
+        }
+
+        return key;
+
+    }
+
+    public void updateAESKey(String username, String key){
         String QUERY = "UPDATE " + TABLE_KEYS +
                 " SET " + COLUMN_KEY + "='" + key + "'" +
                 " WHERE " + COLUMN_USERNAME + "='" + username + "';";

@@ -12,7 +12,6 @@ import android.util.Base64;
 import android.widget.Toast;
 
 import com.google.android.gms.gcm.GcmListenerService;
-import com.squareup.okhttp.internal.Util;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -24,6 +23,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PublicKey;
+import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 
 /**
@@ -75,13 +80,48 @@ public class GCMMessageHandler extends GcmListenerService {
                         ArrayList<Message> messages = parseMessages(result);
 
                         for (int i = 0; i < messages.size(); i++) {
-                            dbManager.addMessage(messages.get(i));
-                            if (dbManager.getConversation(messages.get(i).getSender()) == null) {
-                                //Insert new conversation
-                                dbManager.addConversation(new Conversation(messages.get(i).getSender(), 0));
+                            try {
+                                PublicKey key = Crypto.RSAStrigToPublicKey(dbManager.getRSAKeySign(messages.get(i).getSender()));
+
+                                byte[] signature = Base64.decode(messages.get(i).getSignature(), Base64.NO_WRAP);
+                                byte[] data = Base64.decode(messages.get(i).getMessage(), Base64.NO_WRAP);
+
+                                //Verify signature
+                                if(Crypto.RSAVerify(data, signature, key)){
+                                    Utils.Log("Signature verification successful");
+                                    String plainText = Crypto.AESdecrypt(dbManager.getAESKey(messages.get(i).getSender()),
+                                            messages.get(i).getMessage(),
+                                            Base64.decode(messages.get(i).getIv(), Base64.NO_WRAP));
+
+                                    messages.get(i).setMessage(plainText);
+                                    messages.get(i).setEncrypted(false);
+
+                                    dbManager.addMessage(messages.get(i));
+                                    if (dbManager.getConversation(messages.get(i).getSender()) == null) {
+                                        //Insert new conversation
+                                        dbManager.addConversation(new Conversation(messages.get(i).getSender(), 0));
+                                    }
+
+                                    dbManager.incrementUnreadMessages(messages.get(i).getSender());
+                                }
+
+                                else{
+                                    Utils.Log("Signature verification failed");
+                                    messages.remove(i);
+                                }
+
+                            } catch (NoSuchAlgorithmException e) {
+                                e.printStackTrace();
+                            } catch (InvalidKeySpecException e) {
+                                e.printStackTrace();
+                            } catch (NoSuchProviderException e) {
+                                e.printStackTrace();
+                            } catch (InvalidKeyException e) {
+                                e.printStackTrace();
+                            } catch (SignatureException e) {
+                                e.printStackTrace();
                             }
 
-                            dbManager.incrementUnreadMessages(messages.get(i).getSender());
                         }
 
                         //If the activity is open
@@ -117,7 +157,8 @@ public class GCMMessageHandler extends GcmListenerService {
                                     for (int i = 0; i < messages.size(); i++) {
                                         createNotification(messages.get(i).getSender(), messages.get(i).getMessage(), messages.get(i).getIv());
                                     }
-                                } else {
+                                }
+                                else {
                                     for (int i = 0; i < messages.size(); i++) {
                                         createNotification(messages.get(i).getSender(), messages.get(i).getMessage(), messages.get(i).getIv());
                                     }
@@ -141,6 +182,7 @@ public class GCMMessageHandler extends GcmListenerService {
 
                 final String sender = data.getString("sender");
                 final String recipient = data.getString("recipient");
+
 
 
                 //Retrieve a prime and a generator from the server
@@ -176,6 +218,12 @@ public class GCMMessageHandler extends GcmListenerService {
                             JSONObject rdata = new JSONObject(result);
                             String prime = rdata.getString("prime");
                             String senderPublicKey = rdata.getString("publickey");
+                            String RSAKeySign = rdata.getString("rsakeysign");
+                            String RSAKeyEnc = rdata.getString("rsakeyenc");
+
+                            //Store recipient's keys in the database
+                            dbManager.insertRSAKeyEnc(sender, RSAKeyEnc);
+                            dbManager.insertRSAKeySign(sender, RSAKeySign);
 
                             byte[] privateKey = Crypto.DHGeneratePrivateKey();
 
@@ -262,7 +310,6 @@ public class GCMMessageHandler extends GcmListenerService {
                             JSONObject data = new JSONObject(result);
                             String publicKey = data.getString("publickey");
                             String prime = data.getString("prime");
-                            //TODO:Get my private key
 
                             Utils.Log("Result: " + result);
 
@@ -303,7 +350,7 @@ public class GCMMessageHandler extends GcmListenerService {
 
     }
 
-    private void createNotification(String from, String cipherText, String iv) {
+    private void createNotification(String from, String plainText, String iv) {
 
         Context context = getBaseContext();
         NotificationCompat.Builder mBuilder = null;
@@ -312,11 +359,10 @@ public class GCMMessageHandler extends GcmListenerService {
 
 
         if(preferences.getBoolean("decrypt_notification", true)){
-            String key = dbManager.getKey(from);
+            String key = dbManager.getAESKey(from);
 
             if(key == null){return;}
 
-            String plainText = Crypto.AESdecrypt(key, cipherText, Base64.decode(iv, Base64.NO_WRAP));
 
 
             mBuilder = new NotificationCompat.Builder(context)
@@ -359,6 +405,7 @@ public class GCMMessageHandler extends GcmListenerService {
                 message.setSender(msg.getString("sender"));
                 message.setRecipient(msg.getString("recipient"));
                 message.setIv(msg.getString("iv"));
+                message.setSignature(msg.getString("signature"));
 
 
                 messages.add(message);

@@ -9,6 +9,7 @@ public class Message {
     String sender;
     String recipient;
     String iv;
+    String signature;
     int dbid;
     boolean encrypted;
 
@@ -18,6 +19,7 @@ public class Message {
         this.sender = "";
         this.recipient = "";
         this.iv = "";
+        this.signature = "";
         this.dbid = -1;
         encrypted = true;
     }
@@ -48,6 +50,8 @@ public class Message {
         return this.iv;
     }
 
+    public String getSignature(){return this.signature;}
+
     public int getDbid(){
         return this.dbid;
     }
@@ -75,6 +79,8 @@ public class Message {
     public void setIv(String iv){
         this.iv = iv;
     }
+
+    public void setSignature(String signature){this.signature = signature;}
 
     public void setEncrypted(boolean encrypted){
         this.encrypted = encrypted;

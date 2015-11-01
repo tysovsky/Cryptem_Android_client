@@ -45,9 +45,6 @@ public class CryptemActivity extends AppCompatActivity
             GCMMessageHandler.currentActivity = this;
         }
         super.onResume();
-
-
-
     }
 
     @Override
@@ -57,7 +54,6 @@ public class CryptemActivity extends AppCompatActivity
             GCMMessageHandler.currentActivity = null;
         }
         super.onPause();
-
     }
 
     @Override
@@ -173,8 +169,12 @@ public class CryptemActivity extends AppCompatActivity
                 Intent launchSettings = new Intent(CryptemActivity.this, SettingsActivity.class);
                 launchSettings.putExtra("username", dbManager.getUsername());
                 startActivity(launchSettings);
-
                 return true;
+            case R.id.welcome_activity:
+                Intent welcom_intent = new Intent(CryptemActivity.this, InitialActivity.class);
+                //startActivity(welcom_intent);
+                return true;
+
 
         }
 

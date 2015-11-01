@@ -3,6 +3,7 @@ package com.secure.tysovsky.Cryptem;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.drawable.ColorDrawable;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -16,6 +17,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.afollestad.materialdialogs.MaterialDialog;
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.socketio.client.IO;
 import com.pnikosis.materialishprogress.ProgressWheel;
@@ -57,16 +59,19 @@ public class InitialActivity extends AppCompatActivity {
     EditText ETUsername;
     TextView TVUsername_status;
     ProgressWheel wheel;
-    ProgressWheel usernameCheckWheel;
     Button generateKeys;
-    Button buttonTest;
     String username = "";
     DBManager dbManager;
+
+    MaterialDialog.Builder progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_initial);
+
+        getSupportActionBar().setBackgroundDrawable(new ColorDrawable(getResources().getColor(R.color.primary)));
+
 
 
         dbManager = new DBManager(this);
@@ -75,25 +80,16 @@ public class InitialActivity extends AppCompatActivity {
         TVUsername_status = (TextView)findViewById(R.id.username_status);
         wheel = (ProgressWheel)findViewById(R.id.progress_wheel);
         wheel.stopSpinning();
-        usernameCheckWheel = (ProgressWheel)findViewById(R.id.username_check_progress);
-        usernameCheckWheel.stopSpinning();
+        //usernameCheckWheel = (ProgressWheel)findViewById(R.id.username_check_progress);
+        //usernameCheckWheel.stopSpinning();
+
         generateKeys = (Button)findViewById(R.id.generate_keys);
         generateKeys.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 username = ETUsername.getText().toString();
+
                 new GenerateKeysTask().execute();
-            }
-        });
-
-        buttonTest = (Button)findViewById(R.id.button_test);
-        buttonTest.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                socket.disconnect();
-                Intent i = new Intent(InitialActivity.this, CryptemActivity.class);
-                startActivity(i);
             }
         });
 
@@ -121,7 +117,7 @@ public class InitialActivity extends AppCompatActivity {
 
             @Override
             public void afterTextChanged(Editable editable) {
-                usernameCheckWheel.spin();
+                //usernameCheckWheel.spin();
                 if(ETUsername.getText().length() != 0){
                     JSONObject data = new JSONObject();
                     try {
@@ -153,7 +149,7 @@ public class InitialActivity extends AppCompatActivity {
                         public void run() {
                             TVUsername_status.setText("This username is not taken");
                             username = ETUsername.getText().toString();
-                            usernameCheckWheel.stopSpinning();
+                            //usernameCheckWheel.stopSpinning();
                         }
                     });
                 }
@@ -162,7 +158,7 @@ public class InitialActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             TVUsername_status.setText("This username is taken");
-                            usernameCheckWheel.stopSpinning();
+                            //usernameCheckWheel.stopSpinning();
                         }
                     });
 
@@ -242,6 +238,10 @@ public class InitialActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Boolean success){
             wheel.stopSpinning();
+
+            Intent i = new Intent(InitialActivity.this, CryptemActivity.class);
+            startActivity(i);
+            finish();
         }
     }
 
