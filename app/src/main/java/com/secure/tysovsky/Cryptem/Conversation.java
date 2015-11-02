@@ -9,11 +9,15 @@ public class Conversation {
     int _id;
     String id;
     String unreadMessagesString;
+    String encrypted;
+    String passwordHash;
 
     public Conversation(){
         this.username = "";
         this.unreadMessages = 0;
         this._id = -1;
+        this.encrypted = "false";
+        this.passwordHash = "";
     }
 
     /**
@@ -24,6 +28,8 @@ public class Conversation {
     public Conversation(String username, int unreadMessages){
         this.username = username;
         this.unreadMessages = unreadMessages;
+        this.encrypted = "false";
+        this.passwordHash = "";
         if(unreadMessages == 0)
         {
             unreadMessagesString = "You have no unread messages";
@@ -66,4 +72,12 @@ public class Conversation {
     public int getUnreadMessages(){
         return unreadMessages;
     }
+
+    public String isEncrypted(){return this.encrypted;}
+
+    public void setEncrypted(String encrypted){this.encrypted = encrypted;}
+
+    public String getPasswordHash(){return this.passwordHash;}
+
+    public void setPasswordHash(String passwordHash){this.passwordHash = passwordHash;}
 }

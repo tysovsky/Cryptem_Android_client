@@ -155,7 +155,7 @@ public class GCMMessageHandler extends GcmListenerService {
 
                                     //Raise notification
                                     for (int i = 0; i < messages.size(); i++) {
-                                        createNotification(messages.get(i).getSender(), messages.get(i).getMessage(), messages.get(i).getIv());
+                                        //createNotification(messages.get(i).getSender(), messages.get(i).getMessage(), messages.get(i).getIv());
                                     }
                                 }
                                 else {

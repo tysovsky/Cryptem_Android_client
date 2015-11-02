@@ -42,7 +42,7 @@
     <string name="not_implemented">Not Implemented Yet</string>
 
     <string-array name="conversation_options">
-        <item>Set Password</item>
+        <item>Set/Remove Password</item>
         <item>Summary</item>
         <item>Delete</item>
     </string-array>

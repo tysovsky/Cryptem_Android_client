@@ -58,6 +58,7 @@ public class MessagesFragment extends Fragment{
     Button sendMessage;
     MaterialEditText messageText;
     DBManager dbManager;
+    private String conversationPass = "";
 
 
     @Override
@@ -102,7 +103,7 @@ public class MessagesFragment extends Fragment{
         View view = inflater.inflate(R.layout.fragment_messages, container, false);
         messageList = (ListView)view.findViewById(R.id.messages_list);
         messages = dbManager.getMessages(conversation.getUsername());
-        adapter = new MessagesAdapter(getActivity(), messages, dbManager.getUsername(), conversation.getUsername());
+        adapter = new MessagesAdapter(getActivity(), messages, dbManager.getUsername(), conversation.getUsername(), conversationPass);
         messageList.setAdapter(adapter);
 
         messageList.setOnItemLongClickListener(messageLongClicked);
@@ -151,6 +152,7 @@ public class MessagesFragment extends Fragment{
         super.onDestroy();
         Utils.Log("MessageFragment onDestroy called");
         conversation = null;
+        conversationPass = "";
     }
 
     @Override
@@ -348,14 +350,29 @@ public class MessagesFragment extends Fragment{
                         public void onResponse(String result) {
                             Utils.Log("HttpResult: " + result);
 
-                            message.setMessage(plainText);
-                            message.setEncrypted(false);
+                            if(conversation.isEncrypted().equals("true")){
+                                message.setMessage(Crypto.AESencrypt(conversationPass, plainText, Base64.decode(message.getIv(), Base64.NO_WRAP)));
+                                message.setEncrypted(true);
 
-                            dbManager.addMessage(message);
+                                dbManager.addMessage(message);
+
+                                message.setEncrypted(false);
+                                message.setMessage(plainText);
+
+                                messages.add(message);
+                                adapter.notifyDataSetChanged();
+
+                            }else{
+                                message.setMessage(plainText);
+                                message.setEncrypted(false);
+
+                                dbManager.addMessage(message);
 
 
-                            messages.add(message);
-                            adapter.notifyDataSetChanged();
+                                messages.add(message);
+                                adapter.notifyDataSetChanged();
+                            }
+
 
                             messageList.setSelection(messages.size() + 1);
                         }
@@ -399,7 +416,13 @@ public class MessagesFragment extends Fragment{
         this.messages = messages;
     }
 
+    public void setConversationPass(String pass){
+        this.conversationPass = pass;
+    }
+
     public void setOnActionBarChangeRequestListener(Interfaces.OnActionBarEventListener listener){
         this.actionBarChangeRequestListener = listener;
     }
+
+
 }

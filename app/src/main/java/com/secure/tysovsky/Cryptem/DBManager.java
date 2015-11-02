@@ -15,7 +15,7 @@ import java.util.ArrayList;
  * Created by tysovsky on 9/24/15.
  */
 public class DBManager extends SQLiteOpenHelper {
-    private static final int DATABASE_VERSION = 15;
+    private static final int DATABASE_VERSION = 19;
     private static final String DATABASE_NAME = "cryptem.db";
 
     private static final String TABLE_USER_DETAILS = "userdetails";
@@ -33,6 +33,7 @@ public class DBManager extends SQLiteOpenHelper {
     private static final String COLUMN_KEY = "key";
     private static final String COLUMN_RSAKEYSIGN = "rsakeysign";
     private static final String COLUMN_RSAKEYENC = "rsakeyenc";
+    private static final String COLUMN_PASSWORDHASH = "passwordhash";
     private static final String COLUMN_IV = "iv";
     private static final String COLUMN_DHKE_PRIME = "prime";
     private static final String COLUMN_DHKE_GENERATOR = "generator";
@@ -58,7 +59,9 @@ public class DBManager extends SQLiteOpenHelper {
         String CONVERSATIONS_QUERY = "CREATE TABLE " + TABLE_CONVERSATIONS + "(" +
                 COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COLUMN_USERNAME + " TEXT, "+
-                COLUMN_UNREAD_MESSAGES + " INTEGER " +
+                COLUMN_UNREAD_MESSAGES + " INTEGER, " +
+                COLUMN_ENCRYPTED + " TEXT, " +
+                COLUMN_PASSWORDHASH + " TEXT " +
                 ");";
         sqLiteDatabase.execSQL(CONVERSATIONS_QUERY);
 
@@ -123,6 +126,8 @@ public class DBManager extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put(COLUMN_UNREAD_MESSAGES, conversation.getUnreadMessages());
         values.put(COLUMN_USERNAME, conversation.getUsername());
+        values.put(COLUMN_ENCRYPTED, conversation.isEncrypted());
+        values.put(COLUMN_PASSWORDHASH, conversation.getPasswordHash());
 
         SQLiteDatabase db = getWritableDatabase();
         db.insert(TABLE_CONVERSATIONS, null, values);
@@ -156,6 +161,8 @@ public class DBManager extends SQLiteOpenHelper {
                     conversation._id = cursor.getInt(cursor.getColumnIndex(COLUMN_ID));
                     conversation.username = cursor.getString(cursor.getColumnIndex(COLUMN_USERNAME));
                     conversation.unreadMessages = cursor.getInt(cursor.getColumnIndex(COLUMN_UNREAD_MESSAGES));
+                    conversation.setEncrypted(cursor.getString(cursor.getColumnIndex(COLUMN_ENCRYPTED)));
+                    conversation.setPasswordHash(cursor.getString(cursor.getColumnIndex(COLUMN_PASSWORDHASH)));
 
                     conversations.add(conversation);
 
@@ -233,6 +240,24 @@ public class DBManager extends SQLiteOpenHelper {
         String QUERY = "UPDATE " + TABLE_CONVERSATIONS +
                 " SET " + COLUMN_UNREAD_MESSAGES + "='0'" +
                 " WHERE " + COLUMN_USERNAME + "='" + username + "';";
+        SQLiteDatabase db = getWritableDatabase();
+        db.execSQL(QUERY);
+        db.close();
+    }
+
+    public void setConversationEncrypted(int id, String encrypted){
+        String QUERY = "UPDATE " + TABLE_CONVERSATIONS +
+                " SET " + COLUMN_ENCRYPTED + "='" + encrypted + "'" +
+                " WHERE " + COLUMN_ID + "='" + id + "';";
+        SQLiteDatabase db = getWritableDatabase();
+        db.execSQL(QUERY);
+        db.close();
+    }
+
+    public void setConversationPasswordHash(int id, String passwordHash){
+        String QUERY = "UPDATE " + TABLE_CONVERSATIONS +
+                " SET " + COLUMN_PASSWORDHASH + "='" + passwordHash + "'" +
+                " WHERE " + COLUMN_ID + "='" + id + "';";
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL(QUERY);
         db.close();
@@ -458,6 +483,17 @@ public class DBManager extends SQLiteOpenHelper {
 
         db.execSQL(QUERY);
 
+        db.close();
+    }
+
+    public void updateMessage(Message message){
+        String QUERY = "UPDATE " + TABLE_MESSAGES +
+                " SET " + COLUMN_MESSAGE + "='" + message.getMessage() + "', " +
+                COLUMN_IV + "='" + message.getIv() + "', " +
+                COLUMN_ENCRYPTED + "='" + (message.isEncrypted()?"TRUE":"FALSE") +
+                "' WHERE " + COLUMN_ID + "='" + message.getDbid() + "';";
+        SQLiteDatabase db = getWritableDatabase();
+        db.execSQL(QUERY);
         db.close();
     }
     //endregion

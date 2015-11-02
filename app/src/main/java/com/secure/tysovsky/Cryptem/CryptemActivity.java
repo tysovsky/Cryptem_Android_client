@@ -7,9 +7,13 @@ import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.InputType;
+import android.util.Base64;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
+import com.afollestad.materialdialogs.MaterialDialog;
 import com.secure.tysovsky.Cryptem.Interfaces.OnActionBarEventListener;
 
 import org.apache.http.NameValuePair;
@@ -182,17 +186,49 @@ public class CryptemActivity extends AppCompatActivity
     }
 
     @Override
-    public void onConversationClicked(Conversation conversation) {
+    public void onConversationClicked(final Conversation conversation) {
         //Utils.Log("Conversation pressed. Username: " + conversation.getUsername() );
 
-        messagesFragment.setConversation(conversation);
-        //messagesFragment.setMessages(dbManager.getMessages(conversation.getUsername()));
+        if(conversation.isEncrypted().equals("true")){
+            new MaterialDialog.Builder(CryptemActivity.this)
+                    .title(R.string.enter_password)
+                    .inputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD)
+                    .input(0, 0, new MaterialDialog.InputCallback() {
+                        @Override
+                        public void onInput(MaterialDialog dialog, CharSequence input) {
+                            Utils.Log(input.toString());
+                            String passwordHash = Crypto.SHA512HASH(input.toString());
 
-        FragmentManager manager = getFragmentManager();
-        FragmentTransaction fragmentTransaction = manager.beginTransaction();
-        fragmentTransaction.replace(R.id.conversations_fragment, messagesFragment, MessagesFragment.TAG);
-        fragmentTransaction.addToBackStack(null);
-        fragmentTransaction.commit();
+                            if(conversation.getPasswordHash().equals(passwordHash)){
+                                messagesFragment.setConversation(conversation);
+                                messagesFragment.setConversationPass(input.toString());
+                                //messagesFragment.setMessages(dbManager.getMessages(conversation.getUsername()));
+
+                                FragmentManager manager = getFragmentManager();
+                                FragmentTransaction fragmentTransaction = manager.beginTransaction();
+                                fragmentTransaction.replace(R.id.conversations_fragment, messagesFragment, MessagesFragment.TAG);
+                                fragmentTransaction.addToBackStack(null);
+                                fragmentTransaction.commit();
+                            }
+                            else{
+                                Toast.makeText(CryptemActivity.this, "Wrong Password", Toast.LENGTH_LONG).show();
+                            }
+
+                        }
+                    }).show();
+        }
+        else{
+            messagesFragment.setConversation(conversation);
+            //messagesFragment.setMessages(dbManager.getMessages(conversation.getUsername()));
+
+            FragmentManager manager = getFragmentManager();
+            FragmentTransaction fragmentTransaction = manager.beginTransaction();
+            fragmentTransaction.replace(R.id.conversations_fragment, messagesFragment, MessagesFragment.TAG);
+            fragmentTransaction.addToBackStack(null);
+            fragmentTransaction.commit();
+        }
+
+
     }
 
     //Stupid bug in appcompat library

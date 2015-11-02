@@ -79,6 +79,23 @@ public class Crypto {
         return secretKeySpec;
     }
 
+    public static String SHA512HASH(String input){
+        try {
+            final MessageDigest digest = MessageDigest.getInstance("SHA-512");
+            byte[] bytes = input.getBytes("UTF-8");
+            digest.update(bytes, 0, bytes.length);
+            byte[] hash = digest.digest();
+
+            return Base64.encodeToString(hash, Base64.NO_WRAP);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        return "";
+    }
+
     public static BigInteger getPrime(int bitSize){
         return BigInteger.probablePrime(bitSize, new SecureRandom());
     }

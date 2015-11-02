@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.text.InputType;
 import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -265,7 +266,74 @@ public class ConversationsFragment extends Fragment {
 
                                 //Set password
                                 case 0:
-                                    Toast.makeText(getActivity(), R.string.not_implemented, Toast.LENGTH_LONG).show();
+                                    //Toast.makeText(getActivity(), R.string.not_implemented, Toast.LENGTH_LONG).show();
+
+                                    if(conversations.get(i).isEncrypted().equals("false")){
+                                        new MaterialDialog.Builder(getActivity())
+                                                .title(R.string.enter_password)
+                                                .inputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD)
+                                                .input(0, 0, new MaterialDialog.InputCallback() {
+                                                    @Override
+                                                    public void onInput(MaterialDialog dialog, CharSequence input) {
+                                                        Utils.Log(input.toString());
+                                                        String passwordHash = Crypto.SHA512HASH(input.toString());
+                                                        dbManager.setConversationEncrypted(conversations.get(i)._id, "true");
+                                                        dbManager.setConversationPasswordHash(conversations.get(i)._id, passwordHash);
+
+                                                        ArrayList<Message> messages = dbManager.getMessages(conversations.get(i).getUsername());
+
+                                                        for (int j = 0; j < messages.size();j++){
+                                                            Message tempMessage = messages.get(j);
+                                                            byte[] iv = Crypto.GenerateRandomIV();
+                                                            String cipherText = Crypto.AESencrypt(input.toString(), tempMessage.getMessage(), iv);
+                                                            tempMessage.setIv(Base64.encodeToString(iv, Base64.NO_WRAP));
+                                                            tempMessage.setMessage(cipherText);
+                                                            tempMessage.setEncrypted(true);
+
+                                                            dbManager.updateMessage(tempMessage);
+
+                                                        }
+
+                                                    }
+                                                }).show();
+                                    }
+                                    else{
+                                        new MaterialDialog.Builder(getActivity())
+                                                .title(R.string.enter_password)
+                                                .inputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD)
+                                                .input(0, 0, new MaterialDialog.InputCallback() {
+                                                    @Override
+                                                    public void onInput(MaterialDialog dialog, CharSequence input) {
+                                                        Utils.Log(input.toString());
+                                                        String passwordHash = Crypto.SHA512HASH(input.toString());
+                                                        if(passwordHash.equals(conversations.get(i).getPasswordHash())){
+
+                                                            ArrayList<Message> messages = dbManager.getMessages(conversations.get(i).getUsername());
+
+                                                            for (int j = 0; j < messages.size();j++){
+                                                                Message tempMessage = messages.get(j);
+                                                                byte[] iv = Base64.decode(tempMessage.getIv(), Base64.NO_WRAP);
+                                                                String plainText = Crypto.AESdecrypt(input.toString(), tempMessage.getMessage(), iv);
+                                                                tempMessage.setMessage(plainText);
+                                                                tempMessage.setEncrypted(false);
+
+                                                                dbManager.updateMessage(tempMessage);
+
+
+                                                            }
+
+                                                            dbManager.setConversationEncrypted(conversations.get(i).getId(), "false");
+                                                            dbManager.setConversationPasswordHash(conversations.get(i).getId(), "");
+                                                        }
+
+                                                        else{
+                                                            Toast.makeText(getActivity(), "Wrong Password", Toast.LENGTH_LONG).show();
+                                                        }
+
+                                                    }
+                                                }).show();
+                                    }
+
                                     break;
 
                                 //Summary
