@@ -1,4 +1,3 @@
-# Cryptem_Android_client
-Cryptem Android Client
+# Cryptem Android Client
 
 Detailed description coming soon
